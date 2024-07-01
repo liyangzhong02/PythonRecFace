@@ -59,6 +59,7 @@ python face_processor.py
 - `d`：开启人脸识别检测
 - `b`：开启人脸match
 - `a`：开启年龄性别识别
+- `f`：开启滤镜
 - `q`：退出程序
 
 ## 目录结构
@@ -83,3 +84,9 @@ python face_processor.py
 3. 提交你的更改 (`git commit -am 'Add some feature'`)
 4. 推送到分支 (`git push origin feature-branch`)
 5. 创建一个新的 Pull Request
+
+
+
+## 未完成项目
+
+人脸匹配还未融进项目中

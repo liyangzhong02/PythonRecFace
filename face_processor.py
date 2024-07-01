@@ -1,4 +1,6 @@
 import cv2
+import numpy as np
+
 
 class FaceProcessor:
     def __init__(self, face_cascade_path, smile_cascade_path, video_source, faceProto, faceModel, ageProto, ageModel,
@@ -15,6 +17,8 @@ class FaceProcessor:
         # 初始化计数器
         self.num = 1
         # 初始化控制变量
+        self.frame = None
+        self.isPhoto = False
         self.isSmile = False
         self.isDector = False
         self.isWrite = False
@@ -29,9 +33,48 @@ class FaceProcessor:
         self.ageList = ['0-2', '4-6', '8-12', '15-20', '25-32', '38-43', '48-53', '60-100']
         self.genderList = ['Male', 'Female']
 
+    def beauty_photo(self, frame):
+        # 卡通
+        # 1. 边缘检测
+        # gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        # gray = cv2.medianBlur(gray, 5)
+        # edges = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 9, 9)
+        #
+        # # 2. 颜色简化
+        # color = cv2.bilateralFilter(frame, 9, 200, 200)
+        #
+        # # 3. 轮廓增强
+        # cartoon = cv2.bitwise_and(color, color, mask=edges)
+        # 素描风格
+        if np.any(frame):
+            # 对反转灰度图像进行高斯模糊处理，以平滑图像并减少噪声
+            gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            # 反转增强图像的边缘特征
+            inv_gray_frame = cv2.bitwise_not(gray_frame)
+            # 高斯模糊
+            blur_frame = cv2.GaussianBlur(inv_gray_frame, (13, 13), 0)
+            # 将原始灰度图像除以经过反色处理的模糊图像，来增强图像的对比度和轮廓信息，从而产生类似于素描的效果。
+            sketch_frame = cv2.divide(gray_frame, 255 - blur_frame, scale=256)
+        else:
+            print("no!!!!!")
+
+        return cv2.cvtColor(sketch_frame, cv2.COLOR_GRAY2BGR)
+        # return cartoon
+        # 怀旧风格
+
+        # sepia_filter = np.array([[0.272, 0.534, 0.131],
+        #                          [0.349, 0.686, 0.168],
+        #                          [0.393, 0.769, 0.189]])
+        # sepia_frame = cv2.transform(frame, sepia_filter)
+        # return sepia_frame
+
     def process_frame(self, frame):
+        # 设置当前帧
+        self.frame = frame
+
         # 将帧转换为灰度图像
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
         # 检测人脸区域
         face_zones = self.face_detector.detectMultiScale(gray, scaleFactor=1.3, minNeighbors=10)
 
@@ -58,9 +101,25 @@ class FaceProcessor:
                 # 画出人脸区域的矩形框
                 cv2.rectangle(frame, pt1=(x, y), pt2=(x + w, y + h), color=[0, 0, 255], thickness=1)
 
+            if self.isPhoto:
+                # 滤镜
+                if np.any(frame):
+                    # 取一半的宽做对比
+                    width = frame.shape[1] // 2
+                    # 存处理前的frame
+                    frame_before = frame
+                    # 处理frame
+                    frame = self.beauty_photo(frame)
+                    cv2.putText(frame, 'sketch Photo', (20, 20), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1,
+                                (255, 0, 0), thickness=1)
+                    # 替换frame右半作对比
+                    # frame[:, width:frame.shape[1]] = frame_before[:, width:frame.shape[1]]
+                else:
+                    print("error!")
             if self.isAgeGender:
                 # 检测年龄和性别
                 self.detect_age_gender(frame, x, y, w, h)
+        return frame
 
     def save_face(self, frame, x, y, w, h):
         # 裁剪并调整人脸图像大小
@@ -84,7 +143,7 @@ class FaceProcessor:
 
     def replace_face(self, frame, x, y, w, h):
         # 读取替换图像
-        replacement_image = cv2.imread("xingdailu.jpg")
+        replacement_image = cv2.imread("replacePic.jpg")
         # 调整替换图像大小
         replacement_image = cv2.resize(replacement_image, dsize=(w, h))
         # 替换人脸区域
@@ -132,12 +191,13 @@ class FaceProcessor:
                 break
 
             # 处理当前帧
-            self.process_frame(frame)
+            frame = self.process_frame(frame)
+
             # 显示处理后的视频帧
             cv2.imshow("openCV", frame)
 
             # 处理键盘输入
-            key = cv2.waitKey(1000 // 24) & 0xFF
+            key = cv2.waitKey(1000 // 60) & 0xFF
             if key == ord('w'):
                 self.isWrite = True
                 print("Save image")
@@ -156,6 +216,9 @@ class FaceProcessor:
             elif key == ord('a'):
                 self.isAgeGender = not self.isAgeGender
                 print("Age and Gender Detection:", self.isAgeGender)
+            elif key == ord('f'):
+                self.isPhoto = not self.isPhoto
+                print("Filter:", self.isPhoto)
             elif key == ord('q'):
                 break
 
