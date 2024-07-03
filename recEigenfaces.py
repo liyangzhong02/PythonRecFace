@@ -43,8 +43,8 @@ def recImgs(dataPath):
     model.train(imgs, labels)
 
     #   检验训练结果：
-    camera = cv2.VideoCapture(0)
-    face_cascade = cv2.CascadeClassifier('./haarcascade_frontalface_alt.xml')
+    camera = cv2.VideoCapture("smileVideo.mp4")
+    face_cascade = cv2.CascadeClassifier('./haarcascades/haarcascade_frontalface_alt.xml')
 
     while True:
         flag, frame = camera.read()
@@ -64,10 +64,11 @@ def recImgs(dataPath):
                 print(f'标签：{params[0]}, 置信值评分为：{params[1]}')
                 cv2.putText(frame, names[params[0]], (x, y - 20), cv2.FONT_HERSHEY_SIMPLEX, 1, 255, 2)
             except:
+                cv2.putText(frame, "unn", (x, y - 20), cv2.FONT_HERSHEY_SIMPLEX, 1, 255, 2)
                 continue
 
         cv2.imshow('eigenFaceRec', frame)
-        if cv2.waitKey(100) & 0xff == ord('q'):
+        if cv2.waitKey(1000 // 60) & 0xff == ord('q'):
             break
     camera.release()
     cv2.destroyAllWindows()
